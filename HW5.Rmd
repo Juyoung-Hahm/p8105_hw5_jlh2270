@@ -1,0 +1,252 @@
+---
+title: "P8105_HW5_jlh2270"
+author: "Juyoung Hahm"
+date: "11/17/2020"
+output: html_document
+---
+```{r setup, include = FALSE}
+library(tidyverse)
+set.seed(1)
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+
+## Problem 1
+
+Read in the data.
+Create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
+```{r}
+homicide_df = 
+  read_csv("homicide-data.csv") %>% 
+  mutate(
+    city_state = str_c(city, state, sep = "_"),
+    resolved = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest"        ~ "unsolved",
+      disposition == "Closed by arrest"      ~ "solved",
+    )
+  ) %>% 
+  select(city_state, resolved) %>% 
+  filter(city_state != "Tulsa_AL")
+```
+
+
+Let's look at this a bit
+
+```{r}
+aggregate_df = 
+  homicide_df %>% 
+  group_by(city_state) %>% 
+  summarize(
+    hom_total = n(),
+    hom_unsolved = sum(resolved == "unsolved")
+  )
+```
+
+For the city of Baltimore, MD, use the prop.test function to estimate the proportion of homicides that are unsolved; save the output of prop.test as an R object, apply the broom::tidy to this object and pull the estimated proportion and confidence intervals from the resulting tidy dataframe.
+```{r}
+prop.test(
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_unsolved), 
+  aggregate_df %>% filter(city_state == "Baltimore_MD") %>% pull(hom_total)) %>% 
+  broom::tidy()
+```
+
+Try to iterate ........
+
+```{r}
+results_df = 
+  aggregate_df %>% 
+  mutate(
+    prop_tests = map2(.x = hom_unsolved, .y = hom_total, ~prop.test(x = .x, n = .y)),
+    tidy_tests = map(.x = prop_tests, ~broom::tidy(.x))
+  ) %>% 
+  select(-prop_tests) %>% 
+  unnest(tidy_tests) %>% 
+  select(city_state, estimate, conf.low, conf.high)
+```
+
+
+Create a plot that shows the estimates and CIs for each city
+```{r}
+results_df %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate)) +
+  geom_point() + 
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high)) + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1))
+```
+
+
+
+```{r, error = TRUE}
+homicide_df = 
+  read_csv("homicide-data.csv") %>% 
+  mutate(
+    city_state = str_c(city, state, sep = "_"),
+    resolved = case_when(
+      disposition == "Closed without arrest" ~ "unsolved",
+      disposition == "Open/No arrest"        ~ "unsolved",
+      disposition == "Closed by arrest"      ~ "solved",
+    )
+  ) %>% 
+  select(city_state, resolved) %>% 
+  filter(city_state != "Tulsa_AL") %>% 
+  nest(data = resolved)
+```
+
+
+
+
+
+## Problem 2 ideas ...
+
+import one dataset 
+
+```{r}
+data_1 = read_csv("lda_data/con_01.csv")
+```
+
+```{r, error = TRUE}
+path_df = 
+  tibble(
+    path = list.files("lda_data"),
+  ) %>% 
+  mutate(
+    path = str_c("lda_data/", path),
+    data = map(.............))
+read_csv(path_df$path[[1]])
+```
+
+Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time:
+* Start with a dataframe containing all file names; the list.files function will help
+```{r}
+path = list.files("lda_data", pattern = "*.csv")
+path
+```
+
+* Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
+```{r}
+path_df = path %>% 
+  map(read.csv, stringsAsFactors = FALSE, col.names = files)
+```
+
+* Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
+```{r}
+
+```
+
+# Problem 3
+Conduct a simulation to explore power in a one-sample t-test.
+```{r}
+ttest_sim = function(n, mu = 0, sigma = 5) {
+  data_sim = tibble(
+    x = rnorm(n = 30, mean = mu, sd = sigma),
+  )
+    ttest=t.test(data_sim, mu=0, sd=5)
+    ttest[['p.value']]
+    ttest[['estimate']]
+   
+  results_sim = tibble(
+     pvalue = ttest[['p.value']],
+     mean = ttest[['estimate']]
+  )
+
+}
+```
+Generate 5000 datasets from the model
+```{r}
+output = vector("list", 5000)
+
+for (i in 1:5000) {
+  output[[i]] = ttest_sim(30)
+}
+
+sim_results = bind_rows(output)
+sim_results
+```
+
+Repeat for mu={1,2,3,4,5,6,7}
+```{r}
+mu_list =
+  list(
+    "mu_1" = 1,
+    "mu_2" = 2,
+    "mu_3" = 3,
+    "mu_4" = 4,
+    "mu_5" = 5,
+    "mu_6" = 6,
+    "mu_7" = 7
+  )
+
+output = vector("list", length = 7)
+
+for (i in 1:7) {
+  output[[i]] = rerun(5000, ttest_sim(mu_list[[i]])) %>% 
+    bind_rows
+
+}
+
+
+graph_data =
+bind_rows(output) %>%
+mutate(
+test_results = case_when(
+pvalue < .05 ~ "reject",
+pvalue >= .05 ~ "fail to reject"
+))
+a = slice(graph_data, 1:5000)
+a$mu = rep(1,nrow(a))
+
+b = slice(graph_data, 5001:10000)
+b$mu = rep(2,nrow(b))
+
+c = slice(graph_data, 10001:15000)
+c$mu = rep(3,nrow(c))
+
+d = slice(graph_data, 15001:20000)
+d$mu = rep(4,nrow(d))
+
+e = slice(graph_data, 20001:25000)
+e$mu = rep(5,nrow(e))
+
+f = slice(graph_data, 25001:30000)
+f$mu = rep(6,nrow(f))
+
+g = slice(graph_data, 30001:35000)
+g$mu = rep(7,nrow(g))
+
+graph_data = do.call("rbind", list(a,b,c,d,e,f,g))
+
+```
+Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
+```{r}
+graph_data %>% 
+  group_by(mu) %>%
+  mutate(
+    reject = ifelse(pvalue < '0.05', 1, 0)
+       ) %>% 
+  summarize(prop_reject = mean(reject)) %>% 
+  ggplot(aes(x = mu, y = prop_reject)) +
+  geom_point() +
+  labs(
+    title = "Proportion of times the null is rejected",
+    x = "True Value of Mu",
+    y = "Power")
+```
+Make a plot showing the average estimate of μ̂ on the y axis and the true value of μ on the x axis. Make a second plot (or overlay on the first) the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis. Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+```{r}
+mean(a$mean)
+mean(b$mean)
+```
+
