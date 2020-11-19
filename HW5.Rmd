@@ -2,7 +2,7 @@
 title: "P8105_HW5_jlh2270"
 author: "Juyoung Hahm"
 date: "11/17/2020"
-output: html_document
+output: github_document
 ---
 ```{r setup, include = FALSE}
 library(tidyverse)
@@ -26,7 +26,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 Read in the data.
 Create a city_state variable (e.g. “Baltimore, MD”) and then summarize within cities to obtain the total number of homicides and the number of unsolved homicides (those for which the disposition is “Closed without arrest” or “Open/No arrest”).
-```{r}
+```{r message=FALSE}
 homicide_df = 
   read_csv("homicide-data.csv") %>% 
   mutate(
@@ -44,7 +44,7 @@ homicide_df =
 
 Let's look at this a bit
 
-```{r}
+```{r message=FALSE}
 aggregate_df = 
   homicide_df %>% 
   group_by(city_state) %>% 
@@ -89,7 +89,7 @@ results_df %>%
 
 
 
-```{r, error = TRUE}
+```{r, error = TRUE, message=FALSE}
 homicide_df = 
   read_csv("homicide-data.csv") %>% 
   mutate(
@@ -106,35 +106,37 @@ homicide_df =
 ```
 
 # Problem 2
-```{r}
+```{r message=FALSE}
 path = list.files(pattern = "*.csv") %>%
-      map_df(~read_csv(.)) 
+  map_df(~read_csv(.)) %>%
+  select(starts_with("week")) %>%
+  slice(1:20)
+
 path$arm = c("control","control","control","control","control","control","control","control","control","control","experimental","experimental","experimental","experimental","experimental","experimental","experimental","experimental","experimental","experimental")
 path$ID = c(1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10)
-
-path
+path %>%
+  select(arm, ID, everything())
 ```
 
 
 # Problem 3
-Conduct a simulation to explore power in a one-sample t-test.
+* Conduct a simulation to explore power in a one-sample t-test.
 ```{r}
 ttest_sim = function(n, mu = 0, sigma = 5) {
   data_sim = tibble(
     x = rnorm(n = 30, mean = mu, sd = sigma),
   )
-    ttest=t.test(data_sim, mu=0, sd=5)
+    ttest = t.test(data_sim, mu = 0, sd = 5)
     ttest[['p.value']]
     ttest[['estimate']]
-   
+    
   results_sim = tibble(
      pvalue = ttest[['p.value']],
      mean = ttest[['estimate']]
   )
-
 }
 ```
-Generate 5000 datasets from the model
+* Generate 5000 datasets from the model
 ```{r}
 output = vector("list", 5000)
 
@@ -146,7 +148,7 @@ sim_results = bind_rows(output)
 sim_results
 ```
 
-Repeat for mu={1,2,3,4,5,6,7}
+* Repeat for mu={1,2,3,4,5,6,7}
 ```{r}
 mu_list =
   list(
@@ -172,9 +174,10 @@ graph_data =
 bind_rows(output) %>%
 mutate(
 test_results = case_when(
-pvalue < .05 ~ "reject",
-pvalue >= .05 ~ "fail to reject"
+  pvalue < .05 ~ "reject",
+  pvalue >= .05 ~ "fail to reject"
 ))
+
 a = slice(graph_data, 1:5000)
 a$mu = rep(1,nrow(a))
 
@@ -199,7 +202,7 @@ g$mu = rep(7,nrow(g))
 graph_data = do.call("rbind", list(a,b,c,d,e,f,g))
 
 ```
-Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
+* Make a plot showing the proportion of times the null was rejected (the power of the test) on the y axis and the true value of μ on the x axis. Describe the association between effect size and power.
 ```{r}
 graph_data %>% 
   group_by(mu) %>%
@@ -214,7 +217,10 @@ graph_data %>%
     x = "True Value of Mu",
     y = "Power")
 ```
-Make a plot showing the average estimate of μ̂ on the y axis and the true value of μ on the x axis. 
+When the effect size increases, the power increases.
+
+
+* Make a plot showing the average estimate of μ̂ on the y axis and the true value of μ on the x axis. 
 ```{r}
 mu_hat = list( mean(a$mean), mean(b$mean), mean(c$mean), mean(d$mean), mean(e$mean), mean(f$mean),mean(g$mean))
 true_mu = list(1,2,3,4,5,6,7)
@@ -224,7 +230,7 @@ true_mu = list(1,2,3,4,5,6,7)
 plot(x = true_mu, y = mu_hat)
 ```
 
-Make a second plot (or overlay on the first) the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis.
+* Make a second plot (or overlay on the first) the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis.
 ```{r}
 a_reject = 
   a %>%
@@ -277,7 +283,7 @@ g_reject_average = mean(g_reject$mean)
 
 mu_hat_reject = list(a_reject_average, b_reject_average, c_reject_average, d_reject_average, e_reject_average, f_reject_average, g_reject_average)
 ```
-Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+* Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
 ```{r second plot}
 plot(x = true_mu, y = mu_hat_reject)
 ```
