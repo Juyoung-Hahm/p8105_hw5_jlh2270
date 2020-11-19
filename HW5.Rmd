@@ -105,46 +105,16 @@ homicide_df =
   nest(data = resolved)
 ```
 
-
-
-
-
-## Problem 2 ideas ...
-
-import one dataset 
-
+# Problem 2
 ```{r}
-data_1 = read_csv("lda_data/con_01.csv")
-```
+path = list.files(pattern = "*.csv") %>%
+      map_df(~read_csv(.)) 
+path$arm = c("control","control","control","control","control","control","control","control","control","control","experimental","experimental","experimental","experimental","experimental","experimental","experimental","experimental","experimental","experimental")
+path$ID = c(1,2,3,4,5,6,7,8,9,10,1,2,3,4,5,6,7,8,9,10)
 
-```{r, error = TRUE}
-path_df = 
-  tibble(
-    path = list.files("lda_data"),
-  ) %>% 
-  mutate(
-    path = str_c("lda_data/", path),
-    data = map(.............))
-read_csv(path_df$path[[1]])
-```
-
-Create a tidy dataframe containing data from all participants, including the subject ID, arm, and observations over time:
-* Start with a dataframe containing all file names; the list.files function will help
-```{r}
-path = list.files("lda_data", pattern = "*.csv")
 path
 ```
 
-* Iterate over file names and read in data for each subject using purrr::map and saving the result as a new variable in the dataframe
-```{r}
-path_df = path %>% 
-  map(read.csv, stringsAsFactors = FALSE, col.names = files)
-```
-
-* Tidy the result; manipulate file names to include control arm and subject ID, make sure weekly observations are “tidy”, and do any other tidying that’s necessary
-```{r}
-
-```
 
 # Problem 3
 Conduct a simulation to explore power in a one-sample t-test.
@@ -244,9 +214,71 @@ graph_data %>%
     x = "True Value of Mu",
     y = "Power")
 ```
-Make a plot showing the average estimate of μ̂ on the y axis and the true value of μ on the x axis. Make a second plot (or overlay on the first) the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis. Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+Make a plot showing the average estimate of μ̂ on the y axis and the true value of μ on the x axis. 
 ```{r}
-mean(a$mean)
-mean(b$mean)
+mu_hat = list( mean(a$mean), mean(b$mean), mean(c$mean), mean(d$mean), mean(e$mean), mean(f$mean),mean(g$mean))
+true_mu = list(1,2,3,4,5,6,7)
 ```
 
+```{r first plot}
+plot(x = true_mu, y = mu_hat)
+```
+
+Make a second plot (or overlay on the first) the average estimate of μ̂ only in samples for which the null was rejected on the y axis and the true value of μ on the x axis.
+```{r}
+a_reject = 
+  a %>%
+  filter(
+    test_results == "reject"
+  ) 
+a_reject_average = mean(a_reject$mean)
+
+b_reject = 
+  b %>%
+  filter(
+    test_results == "reject"
+  ) 
+b_reject_average = mean(b_reject$mean)
+
+c_reject = 
+  c %>%
+  filter(
+    test_results == "reject"
+  ) 
+c_reject_average = mean(c_reject$mean)
+
+d_reject = 
+  d %>%
+  filter(
+    test_results == "reject"
+  ) 
+d_reject_average = mean(d_reject$mean)
+
+e_reject = 
+  e %>%
+  filter(
+    test_results == "reject"
+  ) 
+e_reject_average = mean(e_reject$mean)
+
+f_reject = 
+  f %>%
+  filter(
+    test_results == "reject"
+  ) 
+f_reject_average = mean(f_reject$mean)
+
+g_reject = 
+  g %>%
+  filter(
+    test_results == "reject"
+  ) 
+g_reject_average = mean(g_reject$mean)
+
+mu_hat_reject = list(a_reject_average, b_reject_average, c_reject_average, d_reject_average, e_reject_average, f_reject_average, g_reject_average)
+```
+Is the sample average of μ̂ across tests for which the null is rejected approximately equal to the true value of μ? Why or why not?
+```{r second plot}
+plot(x = true_mu, y = mu_hat_reject)
+```
+It definitely got closer to the true mean when we only calculated rejected. Because if we rejected null, then it means that the mean could be bigger or less than the true mean.
